@@ -1,8 +1,17 @@
 # 🚀 Quick Start - API Documentation
 
-## View API Documentation (3 Ways)
+## View API Documentation (4 Ways)
 
-### Option 1: Open HTML Directly (Easiest!)
+### Option 1: Live Hosted Documentation (Easiest! 🌐)
+
+**Just visit**: [https://nicechester.github.io/rental-apis](https://nicechester.github.io/rental-apis)
+
+✅ No setup required  
+✅ Always up-to-date  
+✅ Works on any device  
+✅ Share with team instantly
+
+### Option 2: Open HTML Directly
 ```bash
 # macOS
 open openapi/index.html
@@ -14,7 +23,7 @@ xdg-open openapi/index.html
 start openapi/index.html
 ```
 
-### Option 2: Serve Locally (Recommended for development)
+### Option 3: Serve Locally (Recommended for development)
 ```bash
 # Make script executable (first time only)
 chmod +x openapi/serve.sh
@@ -29,7 +38,7 @@ cd openapi
 
 Then open: **http://localhost:8000**
 
-### Option 3: Python SimpleHTTPServer
+### Option 4: Python SimpleHTTPServer
 ```bash
 cd openapi
 

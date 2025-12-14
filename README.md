@@ -7,7 +7,15 @@ This directory contains OpenAPI 3.0 specifications for all microservices in the 
 
 ## 🎯 Quick Start - Interactive API Documentation
 
-**Open `index.html` in your browser** to explore all APIs with Swagger UI!
+### 🌐 Live Documentation (Easiest!)
+
+**Visit the hosted documentation**: [https://nicechester.github.io/rental-apis](https://nicechester.github.io/rental-apis)
+
+No setup required - explore all 12 services instantly! 🚀
+
+### 💻 Local Documentation
+
+**Open `index.html` in your browser** to explore all APIs with Swagger UI locally:
 
 ```bash
 # Open in default browser

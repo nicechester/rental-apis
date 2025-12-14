@@ -1,0 +1,169 @@
+openapi: 3.0.3
+info:
+  title: File Upload Service API
+  description: Manages file uploads, image processing, and CDN integration
+  version: 1.0.0
+
+servers:
+  - url: https://api.laviolin.com/v1
+
+security:
+  - bearerAuth: []
+
+paths:
+  /upload/image:
+    post:
+      summary: Upload image
+      operationId: uploadImage
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file, category]
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: Image file (JPEG, PNG, WebP, max 10MB)
+                category:
+                  type: string
+                  enum: [instrument, profile, appraisal]
+      responses:
+        '201':
+          description: Image uploaded
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  url:
+                    type: string
+                    format: uri
+                    description: CDN URL for uploaded image
+                  fileId:
+                    type: string
+                    format: uuid
+                  thumbnails:
+                    type: object
+                    properties:
+                      small:
+                        type: string
+                        format: uri
+                      medium:
+                        type: string
+                        format: uri
+                      large:
+                        type: string
+                        format: uri
+        '400':
+          description: Invalid file type or size
+        '413':
+          description: File too large
+        '415':
+          description: Unsupported media type
+
+  /upload/image/{fileId}:
+    delete:
+      summary: Delete image
+      operationId: deleteImage
+      parameters:
+        - name: fileId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Image deleted
+        '403':
+          description: Not authorized to delete this image
+        '404':
+          description: Image not found
+
+    get:
+      summary: Get image metadata
+      operationId: getImageMetadata
+      parameters:
+        - name: fileId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Image metadata
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  fileId:
+                    type: string
+                    format: uuid
+                  url:
+                    type: string
+                    format: uri
+                  category:
+                    type: string
+                  uploadedAt:
+                    type: string
+                    format: date-time
+                  size:
+                    type: integer
+                  dimensions:
+                    type: object
+                    properties:
+                      width:
+                        type: integer
+                      height:
+                        type: integer
+
+  /upload/presigned-url:
+    post:
+      summary: Get presigned URL for direct upload
+      operationId: getPresignedUrl
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [filename, contentType, category]
+              properties:
+                filename:
+                  type: string
+                contentType:
+                  type: string
+                  enum: [image/jpeg, image/png, image/webp]
+                category:
+                  type: string
+                  enum: [instrument, profile, appraisal]
+      responses:
+        '200':
+          description: Presigned URL generated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  uploadUrl:
+                    type: string
+                    format: uri
+                  fileId:
+                    type: string
+                    format: uuid
+                  expiresAt:
+                    type: string
+                    format: date-time
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+

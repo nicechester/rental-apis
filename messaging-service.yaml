@@ -1,0 +1,190 @@
+openapi: 3.0.3
+info:
+  title: Messaging Service API
+  description: Manages conversations and real-time messaging
+  version: 1.0.0
+
+servers:
+  - url: https://api.laviolin.com/v1
+  - url: wss://api.laviolin.com/ws
+    description: WebSocket server
+
+security:
+  - bearerAuth: []
+
+paths:
+  /messages/conversations:
+    get:
+      summary: Get conversations
+      operationId: getConversations
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+        - name: limit
+          in: query
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Conversations retrieved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  conversations:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Conversation'
+                  pagination:
+                    type: object
+
+  /messages/conversations/{conversationId}:
+    get:
+      summary: Get conversation messages
+      operationId: getConversationMessages
+      parameters:
+        - name: conversationId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: page
+          in: query
+          schema:
+            type: integer
+        - name: before
+          in: query
+          schema:
+            type: string
+            format: date-time
+      responses:
+        '200':
+          description: Messages retrieved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  conversationId:
+                    type: string
+                  participant:
+                    type: object
+                  instrument:
+                    type: object
+                  messages:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Message'
+                  pagination:
+                    type: object
+
+  /messages:
+    post:
+      summary: Send message
+      operationId: sendMessage
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [recipientId, content]
+              properties:
+                recipientId:
+                  type: string
+                  format: uuid
+                instrumentId:
+                  type: string
+                  format: uuid
+                content:
+                  type: string
+                  maxLength: 1000
+                attachments:
+                  type: array
+                  items:
+                    type: string
+      responses:
+        '201':
+          description: Message sent
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    $ref: '#/components/schemas/Message'
+
+  /messages/conversations/{conversationId}/read:
+    patch:
+      summary: Mark messages as read
+      operationId: markMessagesRead
+      parameters:
+        - name: conversationId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Messages marked as read
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    Conversation:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        participant:
+          type: object
+        instrument:
+          type: object
+        lastMessage:
+          type: object
+          properties:
+            content:
+              type: string
+            timestamp:
+              type: string
+              format: date-time
+            isRead:
+              type: boolean
+        unreadCount:
+          type: integer
+
+    Message:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        conversationId:
+          type: string
+          format: uuid
+        senderId:
+          type: string
+          format: uuid
+        content:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+        isRead:
+          type: boolean
+        attachments:
+          type: array
+          items:
+            type: string
+

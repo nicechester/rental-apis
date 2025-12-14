@@ -1,0 +1,607 @@
+openapi: 3.0.3
+info:
+  title: User Service API
+  description: |
+    Manages user profiles, roles, favorites, and public profiles for the
+    P2P String Instrument Rental Platform.
+  version: 1.0.0
+  contact:
+    name: API Support
+    email: api@laviolin.com
+
+servers:
+  - url: https://api.laviolin.com/v1
+    description: Production server
+  - url: https://staging-api.laviolin.com/v1
+    description: Staging server
+  - url: http://localhost:3001/v1
+    description: Development server
+
+tags:
+  - name: Profile
+    description: User profile operations
+  - name: Favorites
+    description: Manage favorite instruments
+  - name: Balance
+    description: Owner/Appraiser balance operations
+
+security:
+  - bearerAuth: []
+
+paths:
+  /users/me:
+    get:
+      tags:
+        - Profile
+      summary: Get current user's profile
+      description: Retrieve authenticated user's complete profile
+      operationId: getCurrentUserProfile
+      responses:
+        '200':
+          description: User profile retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfile'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    patch:
+      tags:
+        - Profile
+      summary: Update current user's profile
+      description: Update authenticated user's profile information
+      operationId: updateCurrentUserProfile
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateProfileRequest'
+      responses:
+        '200':
+          description: Profile updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfile'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /users/{userId}:
+    get:
+      tags:
+        - Profile
+      summary: Get public user profile
+      description: Retrieve public profile of a specific user
+      operationId: getUserPublicProfile
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: User ID
+      responses:
+        '200':
+          description: Public profile retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PublicUserProfile'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /users/me/instruments:
+    get:
+      tags:
+        - Profile
+      summary: Get user's instruments
+      description: Get all instruments listed by the authenticated user (owners only)
+      operationId: getUserInstruments
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [active, inactive, all]
+            default: all
+        - $ref: '#/components/parameters/page'
+        - $ref: '#/components/parameters/limit'
+      responses:
+        '200':
+          description: Instruments retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InstrumentsResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: User is not an owner
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /users/me/bookings:
+    get:
+      tags:
+        - Profile
+      summary: Get user's bookings
+      description: Get all bookings for authenticated user (as renter or owner)
+      operationId: getUserBookings
+      parameters:
+        - name: role
+          in: query
+          schema:
+            type: string
+            enum: [renter, owner]
+          description: Filter by user role in booking
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [pending, confirmed, active, completed, cancelled]
+        - $ref: '#/components/parameters/page'
+        - $ref: '#/components/parameters/limit'
+      responses:
+        '200':
+          description: Bookings retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BookingsResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /users/me/payments:
+    get:
+      tags:
+        - Profile
+      summary: Get user's payment history
+      description: Get payment history for authenticated user
+      operationId: getUserPayments
+      parameters:
+        - name: type
+          in: query
+          schema:
+            type: string
+            enum: [incoming, outgoing]
+          description: Filter by payment direction
+        - $ref: '#/components/parameters/page'
+        - $ref: '#/components/parameters/limit'
+      responses:
+        '200':
+          description: Payment history retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentsResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /users/me/balance:
+    get:
+      tags:
+        - Balance
+      summary: Get user's balance
+      description: Get available balance for owner/appraiser
+      operationId: getUserBalance
+      responses:
+        '200':
+          description: Balance retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Balance'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: User is not an owner or appraiser
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /favorites:
+    get:
+      tags:
+        - Favorites
+      summary: Get user's favorite instruments
+      description: Get list of instruments saved as favorites
+      operationId: getFavorites
+      responses:
+        '200':
+          description: Favorites retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FavoritesResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    post:
+      tags:
+        - Favorites
+      summary: Add instrument to favorites
+      description: Save an instrument as favorite
+      operationId: addFavorite
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddFavoriteRequest'
+      responses:
+        '201':
+          description: Instrument added to favorites
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '409':
+          description: Already in favorites
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /favorites/{instrumentId}:
+    delete:
+      tags:
+        - Favorites
+      summary: Remove instrument from favorites
+      description: Remove an instrument from user's favorites
+      operationId: removeFavorite
+      parameters:
+        - name: instrumentId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Favorite removed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  parameters:
+    page:
+      name: page
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        default: 1
+      description: Page number
+
+    limit:
+      name: limit
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 20
+      description: Items per page
+
+  schemas:
+    UserProfile:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        email:
+          type: string
+          format: email
+        name:
+          type: string
+        role:
+          type: string
+          enum: [owner, renter, appraiser, admin]
+        phone:
+          type: string
+        address:
+          $ref: '#/components/schemas/Address'
+        profileImage:
+          type: string
+          format: uri
+        verificationStatus:
+          type: string
+          enum: [verified, pending, unverified]
+        rating:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 5
+        reviewCount:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+
+    PublicUserProfile:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        profileImage:
+          type: string
+          format: uri
+        rating:
+          type: number
+          format: float
+        reviewCount:
+          type: integer
+        memberSince:
+          type: string
+          format: date-time
+        verificationStatus:
+          type: string
+          enum: [verified, pending, unverified]
+
+    UpdateProfileRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 2
+          maxLength: 50
+        phone:
+          type: string
+        address:
+          $ref: '#/components/schemas/Address'
+        profileImage:
+          type: string
+          format: uri
+
+    Address:
+      type: object
+      properties:
+        street:
+          type: string
+        city:
+          type: string
+        state:
+          type: string
+        zipCode:
+          type: string
+        country:
+          type: string
+
+    InstrumentsResponse:
+      type: object
+      properties:
+        instruments:
+          type: array
+          items:
+            $ref: '#/components/schemas/InstrumentSummary'
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+
+    InstrumentSummary:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        type:
+          type: string
+          enum: [violin, viola, cello]
+        brand:
+          type: string
+        model:
+          type: string
+        dailyRate:
+          type: number
+          format: float
+        images:
+          type: array
+          items:
+            type: string
+            format: uri
+        isAvailable:
+          type: boolean
+        activeBookings:
+          type: integer
+        totalRevenue:
+          type: number
+          format: float
+        rating:
+          type: number
+          format: float
+        createdAt:
+          type: string
+          format: date-time
+
+    BookingsResponse:
+      type: object
+      properties:
+        bookings:
+          type: array
+          items:
+            $ref: '#/components/schemas/BookingSummary'
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+
+    BookingSummary:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        instrument:
+          $ref: '#/components/schemas/InstrumentSummary'
+        counterparty:
+          $ref: '#/components/schemas/PublicUserProfile'
+        startDate:
+          type: string
+          format: date
+        endDate:
+          type: string
+          format: date
+        totalCost:
+          type: number
+          format: float
+        status:
+          type: string
+          enum: [pending, confirmed, active, completed, cancelled]
+        createdAt:
+          type: string
+          format: date-time
+
+    PaymentsResponse:
+      type: object
+      properties:
+        payments:
+          type: array
+          items:
+            $ref: '#/components/schemas/PaymentSummary'
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+
+    PaymentSummary:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        bookingId:
+          type: string
+          format: uuid
+        amount:
+          type: number
+          format: float
+        currency:
+          type: string
+          default: USD
+        status:
+          type: string
+          enum: [succeeded, pending, failed]
+        type:
+          type: string
+          enum: [rental, refund]
+        createdAt:
+          type: string
+          format: date-time
+
+    Balance:
+      type: object
+      properties:
+        available:
+          type: number
+          format: float
+          description: Available balance for withdrawal
+        pending:
+          type: number
+          format: float
+          description: Pending balance from active rentals
+        currency:
+          type: string
+          default: USD
+
+    FavoritesResponse:
+      type: object
+      properties:
+        favorites:
+          type: array
+          items:
+            type: object
+            properties:
+              instrument:
+                $ref: '#/components/schemas/InstrumentSummary'
+              addedAt:
+                type: string
+                format: date-time
+
+    AddFavoriteRequest:
+      type: object
+      required:
+        - instrumentId
+      properties:
+        instrumentId:
+          type: string
+          format: uuid
+
+    Pagination:
+      type: object
+      properties:
+        currentPage:
+          type: integer
+        totalPages:
+          type: integer
+        totalItems:
+          type: integer
+        itemsPerPage:
+          type: integer
+        hasNextPage:
+          type: boolean
+        hasPreviousPage:
+          type: boolean
+
+    SuccessResponse:
+      type: object
+      properties:
+        message:
+          type: string
+
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+        message:
+          type: string
+        fields:
+          type: object
+          additionalProperties:
+            type: string
+
+  responses:
+    BadRequest:
+      description: Bad request - validation error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+    Unauthorized:
+      description: Unauthorized - missing or invalid token
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+

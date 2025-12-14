@@ -1,0 +1,206 @@
+openapi: 3.0.3
+info:
+  title: Appraisal Service API
+  description: Handles instrument appraisals and appraiser workflows
+  version: 1.0.0
+
+servers:
+  - url: https://api.laviolin.com/v1
+
+security:
+  - bearerAuth: []
+
+paths:
+  /appraisals:
+    post:
+      summary: Request appraisal
+      operationId: requestAppraisal
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [instrumentId]
+              properties:
+                instrumentId:
+                  type: string
+                  format: uuid
+                notes:
+                  type: string
+      responses:
+        '201':
+          description: Appraisal requested
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  appraisalRequest:
+                    $ref: '#/components/schemas/Appraisal'
+
+    get:
+      summary: Get appraisal requests
+      operationId: getAppraisals
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [pending, assigned, completed, cancelled]
+        - name: role
+          in: query
+          schema:
+            type: string
+            enum: [owner, appraiser]
+      responses:
+        '200':
+          description: Appraisals retrieved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  appraisals:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Appraisal'
+
+  /appraisals/{appraisalId}:
+    get:
+      summary: Get appraisal details
+      operationId: getAppraisalDetails
+      parameters:
+        - name: appraisalId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Appraisal details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AppraisalDetail'
+
+    delete:
+      summary: Cancel appraisal
+      operationId: cancelAppraisal
+      parameters:
+        - name: appraisalId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Appraisal cancelled
+
+  /appraisals/{appraisalId}/assign:
+    post:
+      summary: Assign appraisal
+      operationId: assignAppraisal
+      parameters:
+        - name: appraisalId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Appraisal assigned
+
+  /appraisals/{appraisalId}/complete:
+    post:
+      summary: Complete appraisal
+      operationId: completeAppraisal
+      parameters:
+        - name: appraisalId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [appraisedValue, appraisalReport]
+              properties:
+                appraisedValue:
+                  type: number
+                appraisalReport:
+                  type: object
+                  properties:
+                    condition:
+                      type: string
+                    authenticity:
+                      type: string
+                    marketValue:
+                      type: number
+                    replacementValue:
+                      type: number
+                    detailedNotes:
+                      type: string
+                    images:
+                      type: array
+                      items:
+                        type: string
+      responses:
+        '200':
+          description: Appraisal completed
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    Appraisal:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        instrumentId:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [pending, assigned, completed, cancelled]
+        createdAt:
+          type: string
+          format: date-time
+
+    AppraisalDetail:
+      allOf:
+        - $ref: '#/components/schemas/Appraisal'
+        - type: object
+          properties:
+            instrument:
+              type: object
+            owner:
+              type: object
+            appraiser:
+              type: object
+            appraisedValue:
+              type: number
+            appraisalReport:
+              type: object
+            requestNotes:
+              type: string
+            assignedAt:
+              type: string
+              format: date-time
+            completedAt:
+              type: string
+              format: date-time
+

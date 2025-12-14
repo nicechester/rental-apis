@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>La Violin - API Documentation</title>
+    <link rel="stylesheet" type="text/css" href="https://unpkg.com/swagger-ui-dist@5.10.5/swagger-ui.css">
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .header h1 {
+            margin: 0 0 10px 0;
+            font-size: 28px;
+            font-weight: 600;
+        }
+        
+        .header p {
+            margin: 0;
+            opacity: 0.9;
+            font-size: 14px;
+        }
+        
+        .service-selector {
+            background: white;
+            padding: 15px 20px;
+            border-bottom: 1px solid #e0e0e0;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+        
+        .service-selector label {
+            font-weight: 600;
+            color: #333;
+            font-size: 14px;
+        }
+        
+        .service-selector select {
+            padding: 8px 12px;
+            border: 2px solid #667eea;
+            border-radius: 6px;
+            font-size: 14px;
+            background: white;
+            cursor: pointer;
+            min-width: 250px;
+            transition: all 0.3s ease;
+        }
+        
+        .service-selector select:hover {
+            border-color: #764ba2;
+        }
+        
+        .service-selector select:focus {
+            outline: none;
+            border-color: #764ba2;
+            box-shadow: 0 0 0 3px rgba(118, 75, 162, 0.1);
+        }
+        
+        .service-info {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            margin-left: auto;
+        }
+        
+        .service-badge {
+            padding: 4px 12px;
+            background: #f0f4ff;
+            color: #667eea;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        
+        .port-info {
+            font-size: 12px;
+            color: #666;
+            padding: 4px 10px;
+            background: #f5f5f5;
+            border-radius: 4px;
+        }
+        
+        #swagger-ui {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        .swagger-ui .topbar {
+            display: none;
+        }
+        
+        @media (max-width: 768px) {
+            .service-selector {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .service-info {
+                margin-left: 0;
+                justify-content: space-between;
+            }
+            
+            .service-selector select {
+                min-width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🎻 La Violin - API Documentation</h1>
+        <p>P2P String Instrument Rental Platform - Microservices Architecture</p>
+    </div>
+    
+    <div class="service-selector">
+        <label for="service-select">Select Service:</label>
+        <select id="service-select" onchange="loadService()">
+            <option value="">-- Choose a Service --</option>
+            <option value="admin-service.yaml" data-port="8082">Admin Service</option>
+            <option value="appraisal-service.yaml" data-port="8087">Appraisal Service</option>
+            <option value="auth-service.yaml" data-port="8081">Auth Service</option>
+            <option value="booking-service.yaml" data-port="8084">Booking Service</option>
+            <option value="file-upload-service.yaml" data-port="8090">File Upload Service</option>
+            <option value="instrument-service.yaml" data-port="8083">Instrument Service</option>
+            <option value="messaging-service.yaml" data-port="8086">Messaging Service</option>
+            <option value="notification-service.yaml" data-port="8089">Notification Service</option>
+            <option value="payment-service.yaml" data-port="8085">Payment Service</option>
+            <option value="review-service.yaml" data-port="8088">Review Service</option>
+            <option value="search-service.yaml" data-port="8091">Search Service</option>
+            <option value="user-service.yaml" data-port="8092">User Service</option>
+        </select>
+        
+        <div class="service-info">
+            <span class="service-badge" id="service-count">12 Services</span>
+            <span class="port-info" id="port-info" style="display: none;">Port: <strong id="service-port">-</strong></span>
+        </div>
+    </div>
+    
+    <div id="swagger-ui"></div>
+    
+    <script src="https://unpkg.com/swagger-ui-dist@5.10.5/swagger-ui-bundle.js"></script>
+    <script src="https://unpkg.com/swagger-ui-dist@5.10.5/swagger-ui-standalone-preset.js"></script>
+    <script>
+        let ui;
+        
+        // Initialize with empty spec
+        function initSwagger(specUrl) {
+            ui = SwaggerUIBundle({
+                url: specUrl || "",
+                dom_id: '#swagger-ui',
+                deepLinking: true,
+                presets: [
+                    SwaggerUIBundle.presets.apis,
+                    SwaggerUIStandalonePreset
+                ],
+                plugins: [
+                    SwaggerUIBundle.plugins.DownloadUrl
+                ],
+                layout: "StandaloneLayout",
+                defaultModelsExpandDepth: 1,
+                defaultModelExpandDepth: 1,
+                docExpansion: "list",
+                filter: true,
+                tryItOutEnabled: true
+            });
+        }
+        
+        function loadService() {
+            const select = document.getElementById('service-select');
+            const selectedOption = select.options[select.selectedIndex];
+            const specFile = select.value;
+            const port = selectedOption.getAttribute('data-port');
+            
+            if (specFile) {
+                // Show port info
+                document.getElementById('port-info').style.display = 'block';
+                document.getElementById('service-port').textContent = port;
+                
+                // Load the spec
+                initSwagger(specFile);
+                
+                // Update URL hash for bookmarking
+                window.location.hash = specFile.replace('.yaml', '');
+            } else {
+                document.getElementById('port-info').style.display = 'none';
+            }
+        }
+        
+        // Load service from URL hash on page load
+        window.addEventListener('DOMContentLoaded', function() {
+            const hash = window.location.hash.substring(1);
+            if (hash) {
+                const select = document.getElementById('service-select');
+                const specFile = hash + '.yaml';
+                
+                // Try to find and select the service
+                for (let i = 0; i < select.options.length; i++) {
+                    if (select.options[i].value === specFile) {
+                        select.selectedIndex = i;
+                        loadService();
+                        break;
+                    }
+                }
+            } else {
+                // Load auth-service by default
+                const select = document.getElementById('service-select');
+                select.value = 'auth-service.yaml';
+                loadService();
+            }
+        });
+    </script>
+</body>
+</html>
+

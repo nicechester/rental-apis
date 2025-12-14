@@ -1,0 +1,128 @@
+openapi: 3.0.3
+info:
+  title: Review Service API
+  description: Manages reviews and ratings for users, instruments, and appraisers
+  version: 1.0.0
+
+servers:
+  - url: https://api.laviolin.com/v1
+
+security:
+  - bearerAuth: []
+
+paths:
+  /reviews:
+    post:
+      summary: Create review
+      operationId: createReview
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [bookingId, revieweeId, reviewType, rating]
+              properties:
+                bookingId:
+                  type: string
+                  format: uuid
+                revieweeId:
+                  type: string
+                  format: uuid
+                reviewType:
+                  type: string
+                  enum: [instrument, user]
+                rating:
+                  type: integer
+                  minimum: 1
+                  maximum: 5
+                comment:
+                  type: string
+                  minLength: 50
+                  maxLength: 500
+                wouldRecommend:
+                  type: boolean
+      responses:
+        '201':
+          description: Review created
+        '400':
+          description: Validation error or not eligible to review
+        '409':
+          description: Review already exists
+
+    get:
+      summary: Get reviews
+      operationId: getReviews
+      security: []
+      parameters:
+        - name: instrumentId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: userId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: page
+          in: query
+          schema:
+            type: integer
+        - name: limit
+          in: query
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Reviews retrieved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  reviews:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Review'
+                  averageRating:
+                    type: number
+                  totalReviews:
+                    type: integer
+                  pagination:
+                    type: object
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    Review:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        reviewer:
+          type: object
+          properties:
+            id:
+              type: string
+              format: uuid
+            name:
+              type: string
+            profileImage:
+              type: string
+        rating:
+          type: integer
+        comment:
+          type: string
+        wouldRecommend:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+

@@ -1,0 +1,459 @@
+openapi: 3.0.3
+info:
+  title: Instrument Service API
+  description: Manages instrument listings, availability, and search operations
+  version: 1.0.0
+
+servers:
+  - url: https://api.laviolin.com/v1
+
+tags:
+  - name: Instruments
+    description: Instrument listing operations
+  - name: Availability
+    description: Instrument availability operations
+
+paths:
+  /instruments:
+    get:
+      tags: [Instruments]
+      summary: List instruments
+      operationId: listInstruments
+      parameters:
+        - name: type
+          in: query
+          schema:
+            type: string
+            enum: [violin, viola, cello]
+        - name: minPrice
+          in: query
+          schema:
+            type: number
+        - name: maxPrice
+          in: query
+          schema:
+            type: number
+        - name: location
+          in: query
+          schema:
+            type: string
+        - name: startDate
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: endDate
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: available
+          in: query
+          schema:
+            type: boolean
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+            maximum: 100
+        - name: sortBy
+          in: query
+          schema:
+            type: string
+            enum: [price, rating, newest]
+        - name: sortOrder
+          in: query
+          schema:
+            type: string
+            enum: [asc, desc]
+      responses:
+        '200':
+          description: Instruments retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  instruments:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/InstrumentListing'
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+
+    post:
+      tags: [Instruments]
+      summary: Create instrument listing
+      operationId: createInstrument
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateInstrumentRequest'
+      responses:
+        '201':
+          description: Instrument created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    format: uuid
+                  message:
+                    type: string
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /instruments/{instrumentId}:
+    get:
+      tags: [Instruments]
+      summary: Get instrument details
+      operationId: getInstrument
+      parameters:
+        - name: instrumentId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Instrument details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InstrumentDetail'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    patch:
+      tags: [Instruments]
+      summary: Update instrument
+      operationId: updateInstrument
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: instrumentId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateInstrumentRequest'
+      responses:
+        '200':
+          description: Instrument updated
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: Not instrument owner
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    delete:
+      tags: [Instruments]
+      summary: Delete instrument
+      operationId: deleteInstrument
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: instrumentId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Instrument deleted
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: Not instrument owner
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: Cannot delete - has active bookings
+
+  /instruments/{instrumentId}/availability:
+    get:
+      tags: [Availability]
+      summary: Check availability
+      operationId: checkAvailability
+      parameters:
+        - name: instrumentId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: startDate
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+        - name: endDate
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Availability info
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  isAvailable:
+                    type: boolean
+                  unavailableDates:
+                    type: array
+                    items:
+                      type: string
+                      format: date
+                  totalCost:
+                    type: number
+                  numberOfDays:
+                    type: integer
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    InstrumentListing:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        type:
+          type: string
+          enum: [violin, viola, cello]
+        brand:
+          type: string
+        model:
+          type: string
+        year:
+          type: integer
+        condition:
+          type: string
+          enum: [excellent, very-good, good, fair]
+        dailyRate:
+          type: number
+        description:
+          type: string
+        images:
+          type: array
+          items:
+            type: string
+            format: uri
+        location:
+          type: object
+          properties:
+            city:
+              type: string
+            state:
+              type: string
+            zipCode:
+              type: string
+        owner:
+          type: object
+          properties:
+            id:
+              type: string
+              format: uuid
+            name:
+              type: string
+            rating:
+              type: number
+        rating:
+          type: number
+        reviewCount:
+          type: integer
+        isAvailable:
+          type: boolean
+
+    InstrumentDetail:
+      allOf:
+        - $ref: '#/components/schemas/InstrumentListing'
+        - type: object
+          properties:
+            specifications:
+              type: object
+              properties:
+                size:
+                  type: string
+                material:
+                  type: string
+                countryOfOrigin:
+                  type: string
+                customFeatures:
+                  type: string
+            appraisalInfo:
+              type: object
+              properties:
+                hasAppraisal:
+                  type: boolean
+                appraisedValue:
+                  type: number
+                appraisalDate:
+                  type: string
+                  format: date-time
+                appraiser:
+                  type: object
+                  properties:
+                    id:
+                      type: string
+                      format: uuid
+                    name:
+                      type: string
+            createdAt:
+              type: string
+              format: date-time
+            updatedAt:
+              type: string
+              format: date-time
+
+    CreateInstrumentRequest:
+      type: object
+      required:
+        - type
+        - brand
+        - model
+        - year
+        - condition
+        - dailyRate
+        - description
+        - images
+        - location
+      properties:
+        type:
+          type: string
+          enum: [violin, viola, cello]
+        brand:
+          type: string
+        model:
+          type: string
+        year:
+          type: integer
+          minimum: 1700
+        condition:
+          type: string
+          enum: [excellent, very-good, good, fair]
+        dailyRate:
+          type: number
+          minimum: 10
+          maximum: 500
+        description:
+          type: string
+          minLength: 50
+          maxLength: 2000
+        specifications:
+          type: object
+        images:
+          type: array
+          minItems: 3
+          maxItems: 15
+          items:
+            type: string
+            format: uri
+        location:
+          type: object
+          required: [city, state, zipCode]
+          properties:
+            city:
+              type: string
+            state:
+              type: string
+            zipCode:
+              type: string
+
+    UpdateInstrumentRequest:
+      type: object
+      properties:
+        brand:
+          type: string
+        model:
+          type: string
+        year:
+          type: integer
+        condition:
+          type: string
+        dailyRate:
+          type: number
+        description:
+          type: string
+        specifications:
+          type: object
+        images:
+          type: array
+          items:
+            type: string
+        isAvailable:
+          type: boolean
+
+    Pagination:
+      type: object
+      properties:
+        currentPage:
+          type: integer
+        totalPages:
+          type: integer
+        totalItems:
+          type: integer
+        itemsPerPage:
+          type: integer
+
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+        message:
+          type: string
+
+  responses:
+    BadRequest:
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    Unauthorized:
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    NotFound:
+      description: Not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+

@@ -1,0 +1,304 @@
+openapi: 3.0.3
+info:
+  title: Admin Service API
+  description: Platform administration, moderation, and analytics
+  version: 1.0.0
+
+servers:
+  - url: https://api.laviolin.com/v1
+
+security:
+  - bearerAuth: []
+
+paths:
+  /admin/users:
+    get:
+      summary: Get all users
+      operationId: getAllUsers
+      parameters:
+        - name: role
+          in: query
+          schema:
+            type: string
+            enum: [owner, renter, appraiser, admin]
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [active, warned, suspended, banned]
+        - name: page
+          in: query
+          schema:
+            type: integer
+        - name: limit
+          in: query
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Users retrieved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  users:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/AdminUserView'
+                  pagination:
+                    type: object
+        '403':
+          description: Not authorized - admin only
+
+  /admin/users/{userId}/status:
+    patch:
+      summary: Update user status
+      operationId: updateUserStatus
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [verificationStatus]
+              properties:
+                verificationStatus:
+                  type: string
+                  enum: [verified, pending, suspended]
+      responses:
+        '200':
+          description: Status updated
+
+  /admin/users/{userId}/warn:
+    post:
+      summary: Issue warning
+      operationId: warnUser
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reason]
+              properties:
+                reason:
+                  type: string
+      responses:
+        '200':
+          description: Warning issued
+
+  /admin/users/{userId}/suspend:
+    post:
+      summary: Suspend user
+      operationId: suspendUser
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reason, durationDays]
+              properties:
+                reason:
+                  type: string
+                durationDays:
+                  type: integer
+                  minimum: 1
+                  maximum: 90
+      responses:
+        '200':
+          description: User suspended
+
+  /admin/users/{userId}/ban:
+    post:
+      summary: Ban user permanently
+      operationId: banUser
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reason]
+              properties:
+                reason:
+                  type: string
+      responses:
+        '200':
+          description: User banned
+
+  /admin/statistics:
+    get:
+      summary: Get platform statistics
+      operationId: getPlatformStatistics
+      responses:
+        '200':
+          description: Statistics retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlatformStatistics'
+
+  /admin/reports/flagged-content:
+    get:
+      summary: Get flagged content
+      operationId: getFlaggedContent
+      parameters:
+        - name: type
+          in: query
+          schema:
+            type: string
+            enum: [message, review, listing]
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [pending, reviewed, resolved]
+      responses:
+        '200':
+          description: Flagged content retrieved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  reports:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/FlaggedContent'
+
+  /admin/analytics/revenue:
+    get:
+      summary: Get revenue analytics
+      operationId: getRevenueAnalytics
+      parameters:
+        - name: startDate
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: endDate
+          in: query
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Revenue analytics
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  totalRevenue:
+                    type: number
+                  revenueByMonth:
+                    type: array
+                    items:
+                      type: object
+                  platformFees:
+                    type: number
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    AdminUserView:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        email:
+          type: string
+        name:
+          type: string
+        role:
+          type: string
+        status:
+          type: string
+        verificationStatus:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        totalBookings:
+          type: integer
+        totalSpent:
+          type: number
+        warningCount:
+          type: integer
+
+    PlatformStatistics:
+      type: object
+      properties:
+        totalUsers:
+          type: integer
+        totalInstruments:
+          type: integer
+        totalBookings:
+          type: integer
+        totalRevenue:
+          type: number
+        usersByRole:
+          type: object
+        bookingsByStatus:
+          type: object
+        revenueByMonth:
+          type: array
+          items:
+            type: object
+
+    FlaggedContent:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        type:
+          type: string
+        contentId:
+          type: string
+        reportedBy:
+          type: string
+        reason:
+          type: string
+        status:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+

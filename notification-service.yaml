@@ -1,0 +1,146 @@
+openapi: 3.0.3
+info:
+  title: Notification Service API
+  description: Handles multi-channel notifications (in-app, email, push)
+  version: 1.0.0
+
+servers:
+  - url: https://api.laviolin.com/v1
+
+security:
+  - bearerAuth: []
+
+paths:
+  /notifications:
+    get:
+      summary: Get notifications
+      operationId: getNotifications
+      parameters:
+        - name: unreadOnly
+          in: query
+          schema:
+            type: boolean
+        - name: page
+          in: query
+          schema:
+            type: integer
+        - name: limit
+          in: query
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Notifications retrieved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  notifications:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Notification'
+                  unreadCount:
+                    type: integer
+                  pagination:
+                    type: object
+
+  /notifications/{notificationId}/read:
+    patch:
+      summary: Mark notification as read
+      operationId: markNotificationRead
+      parameters:
+        - name: notificationId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Notification marked as read
+
+  /notifications/read-all:
+    patch:
+      summary: Mark all notifications as read
+      operationId: markAllNotificationsRead
+      responses:
+        '200':
+          description: All notifications marked as read
+
+  /notifications/preferences:
+    get:
+      summary: Get notification preferences
+      operationId: getNotificationPreferences
+      responses:
+        '200':
+          description: Preferences retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotificationPreferences'
+
+    patch:
+      summary: Update notification preferences
+      operationId: updateNotificationPreferences
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NotificationPreferences'
+      responses:
+        '200':
+          description: Preferences updated
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    Notification:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        type:
+          type: string
+          enum: [booking, message, review, appraisal, payment, system]
+        title:
+          type: string
+        message:
+          type: string
+        isRead:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+        actionUrl:
+          type: string
+
+    NotificationPreferences:
+      type: object
+      properties:
+        email:
+          type: object
+          properties:
+            bookings:
+              type: boolean
+            messages:
+              type: boolean
+            reviews:
+              type: boolean
+            marketing:
+              type: boolean
+        push:
+          type: object
+          properties:
+            bookings:
+              type: boolean
+            messages:
+              type: boolean
+

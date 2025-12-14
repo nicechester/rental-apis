@@ -1,0 +1,120 @@
+openapi: 3.0.3
+info:
+  title: Payment Service API
+  description: Handles payments, refunds, and payouts
+  version: 1.0.0
+
+servers:
+  - url: https://api.laviolin.com/v1
+
+security:
+  - bearerAuth: []
+
+paths:
+  /payments/intent:
+    post:
+      summary: Create payment intent
+      operationId: createPaymentIntent
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [bookingId, amount]
+              properties:
+                bookingId:
+                  type: string
+                  format: uuid
+                amount:
+                  type: number
+      responses:
+        '201':
+          description: Payment intent created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  paymentIntentId:
+                    type: string
+                  clientSecret:
+                    type: string
+                  amount:
+                    type: number
+                  currency:
+                    type: string
+
+  /payments/{paymentIntentId}/confirm:
+    post:
+      summary: Confirm payment
+      operationId: confirmPayment
+      parameters:
+        - name: paymentIntentId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [paymentMethodId]
+              properties:
+                paymentMethodId:
+                  type: string
+      responses:
+        '200':
+          description: Payment confirmed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  bookingId:
+                    type: string
+
+  /payments/payout:
+    post:
+      summary: Request payout
+      operationId: requestPayout
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [amount, bankAccountId]
+              properties:
+                amount:
+                  type: number
+                  minimum: 20
+                bankAccountId:
+                  type: string
+      responses:
+        '201':
+          description: Payout requested
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  payoutId:
+                    type: string
+                  amount:
+                    type: number
+                  estimatedArrival:
+                    type: string
+                    format: date
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
